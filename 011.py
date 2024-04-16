@@ -18,20 +18,15 @@ def Dot(a, b):
 
 
 def Normalize(arr):
-    print(arr)
     lens = ((arr[:, :, 0] ** 2) + (arr[:, :, 1] ** 2) + (arr[:, :, 2] ** 2)) ** 0.5
-    print(lens)
     return arr / lens.reshape(lens.shape[0], lens.shape[1], 1);
 
 
 def MakeFilter(width: int, height: int):
-    arr = np.asarray(Image.open('filter2.jpg'), 'float32') - 128
+    arr = np.asarray(Image.open('normal_map.png'), 'float32') - 128
 
     # to normal map
     normal = Normalize(arr)
-
-    plt.imshow(normal)
-    plt.show()
 
     # ajust size
     tileY = math.ceil(height / normal.shape[0])
@@ -83,19 +78,26 @@ def Mapping(rays, img, distance):
 
 
 def GaussianFilter(kernelRad: int):
+    # 创建卷积核和sigma
     f = np.zeros((kernelRad * 2 + 1, kernelRad * 2 + 1))
     sigma = 2.5 * kernelRad
+    print(f)
 
+    # 用二维高斯正态分布公式 计算每个位置上的高斯滤波器的值
     for x in range(-kernelRad, kernelRad + 1):
         for y in range(-kernelRad, kernelRad + 1):
+            print(f"x: {x}, y: {y}")
             f[kernelRad + x, kernelRad + y] = (1 / ((2 * math.pi * (sigma ** 2)) ** 0.5)) * math.exp(
                 -(((x ** 2) + (y ** 2)) / (2 * (sigma ** 2))))
 
+    print(f, "\n\naaaa\n", f / np.sum(f))
+
+    # !!!! 不理解为什么要返回 f / np.sum(f)
     return f / np.sum(f)
 
 
 def GaussianBlur(img):
-    kernel = GaussianFilter(1)
+    kernel = GaussianFilter(5)
     resR = signal.convolve2d(img[:, :, 0], kernel, mode='valid')
     resG = signal.convolve2d(img[:, :, 1], kernel, mode='valid')
     resB = signal.convolve2d(img[:, :, 2], kernel, mode='valid')
@@ -108,22 +110,21 @@ def GaussianBlur(img):
     return retImg
 
 
-if __name__ == '__main__':
-    # read image
-    img = np.asarray(Image.open('original_image.png')) / 255
+# read image
+img = np.asarray(Image.open('original_image.png')) / 255
 
-    # to blur image
-    blrImg = GaussianBlur(img)
+# to blur image
+blrImg = GaussianBlur(img)
+plt.imshow(blrImg)
+plt.show()
 
-    # read filter
-    f = MakeFilter(blrImg.shape[1], blrImg.shape[0])
+# read filter
+f = MakeFilter(blrImg.shape[1], blrImg.shape[0])
 
-    # compute rays
-    raysOut = ComputeRefraction(f)
+# compute rays
+raysOut = ComputeRefraction(f)
 
-    # compute final image
-    finalImg = Mapping(raysOut, blrImg, 500)
+# compute final image
+finalImg = Mapping(raysOut, blrImg, 500)
 
-    plt.figure(figsize=(20, 20))
-    plt.imshow(finalImg)
-    plt.show()
+plt.figure(figsize=(20, 20))
